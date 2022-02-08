@@ -131,6 +131,20 @@ func GetSingleBook(id int64) ([]Book, error) {
 	return books, nil
 }
 
+// CreateBook Service
+func CreateBook(book Book) error {
+
+	query := `INSERT INTO BOOKS (isbn, title, firstname, lastname) values($1, $2, $3, $4);`
+
+	_, err := db.Exec(query, book.Title, book.Isbn, book.Author.FirstName, book.Author.LastName)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // test server
 func index(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
@@ -177,19 +191,28 @@ func getBook(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(book)
 }
 
-//// Add a new book
-//func addBook(w http.ResponseWriter, r *http.Request) {
-//	w.Header().Set("Content-Type", "application/json")
-//	var book Book
-//	_ = json.NewDecoder(r.Body).Decode(&book)
-//	book.ID = strconv.Itoa(rand.Intn(10000)) // Mock ID  will change after added DB
-//	books = append(books, book)
-//	err := json.NewEncoder(w).Encode(book)
-//	if err != nil {
-//		return
-//	}
-//}
-//
+// Add a new book
+func addBook(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	decoder := json.NewDecoder(r.Body)
+	var book Book
+	err := decoder.Decode(&book)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		return
+	}
+
+	err = CreateBook(book)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		return
+	} else {
+		w.WriteHeader(http.StatusOK)
+	}
+}
+
 //// Update book
 //func updateBook(w http.ResponseWriter, r *http.Request) {
 //	w.Header().Set("Content-Type", "application/json")
@@ -236,7 +259,7 @@ func main() {
 	r.HandleFunc("/", index).Methods("GET")
 	r.HandleFunc("/books", getBooks).Methods("GET")
 	r.HandleFunc("/books/{id}", getBook).Methods("GET")
-	//r.HandleFunc("/books", addBook).Methods("POST")
+	r.HandleFunc("/books", addBook).Methods("POST")
 	//r.HandleFunc("/books/{id}", updateBook).Methods("PUT")
 	//r.HandleFunc("/books/{id", deleteBook).Methods("DELETE")
 
