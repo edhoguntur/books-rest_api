@@ -84,7 +84,7 @@ type Author struct {
 // GetAllBooks Service
 func GetAllBooks() ([]Book, error) {
 	var books []Book
-	query := `SELECT * FROM BOOKS`
+	query := `SELECT * FROM BOOKS;`
 	rows, err := db.Query(query)
 	if err != nil {
 		return books, err
@@ -109,7 +109,7 @@ func GetAllBooks() ([]Book, error) {
 // GetSingleBook Service
 func GetSingleBook(id int64) ([]Book, error) {
 	var books []Book
-	query := `SELECT * FROM BOOKS WHERE ID=$1`
+	query := `SELECT * FROM BOOKS WHERE ID=$1;`
 	rows, err := db.Query(query, id)
 	if err != nil {
 		return books, err
@@ -142,6 +142,28 @@ func CreateBook(book Book) error {
 		return err
 	}
 
+	return nil
+}
+
+// EditBook Service
+func EditBook(id int64, book Book) error {
+
+	query := `UPDATE BOOKS SET isbn=$1, title=$2, firstname=$3, lastname=$4 WHERE id=$5;`
+
+	_, err := db.Exec(query, book.Isbn, book.Title, book.Author.FirstName, book.Author.LastName, id)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// DeleteBook Service
+func DeleteBook(id int64) error {
+	query := `DELETE FROM BOOKS WHERE id=$1;`
+	_, err := db.Exec(query, id)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -213,41 +235,51 @@ func addBook(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-//// Update book
-//func updateBook(w http.ResponseWriter, r *http.Request) {
-//	w.Header().Set("Content-Type", "application/json")
-//	params := mux.Vars(r)
-//	for index, book := range books {
-//		if book.ID == params["id"] {
-//			books = append(books[:index], books[:index+1]...)
-//			var book Book
-//			_ = json.NewDecoder(r.Body).Decode(&book)
-//			book.ID = params["id"]
-//			books = append(books, book)
-//			err := json.NewEncoder(w).Encode(book)
-//			if err != nil {
-//				return
-//			}
-//			return
-//		}
-//	}
-//}
-//
-//// Delete book
-//func deleteBook(w http.ResponseWriter, r *http.Request) {
-//	w.Header().Set("Content-Type", "application/json")
-//	params := mux.Vars(r)
-//	for index, book := range books {
-//		if book.ID == params["id"] {
-//			books = append(books[:index], books[:index+1]...)
-//			break
-//		}
-//	}
-//	err := json.NewEncoder(w).Encode(books)
-//	if err != nil {
-//		return
-//	}
-//}
+// Update book
+func updateBook(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	decoder := json.NewDecoder(r.Body)
+	var book Book
+	err := decoder.Decode(&book)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		return
+	}
+	params := mux.Vars(r)["id"]
+	id, _ := strconv.ParseInt(params, 10, 64)
+
+	err = EditBook(id, book)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		return
+	} else {
+		w.WriteHeader(http.StatusOK)
+	}
+}
+
+// Delete book
+func deleteBook(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	params := mux.Vars(r)
+	idStr := params["id"]
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		return
+	}
+
+	err = DeleteBook(id)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		return
+	} else {
+		w.WriteHeader(http.StatusOK)
+	}
+}
 
 func main() {
 	// initialized router
@@ -260,8 +292,8 @@ func main() {
 	r.HandleFunc("/books", getBooks).Methods("GET")
 	r.HandleFunc("/books/{id}", getBook).Methods("GET")
 	r.HandleFunc("/books", addBook).Methods("POST")
-	//r.HandleFunc("/books/{id}", updateBook).Methods("PUT")
-	//r.HandleFunc("/books/{id", deleteBook).Methods("DELETE")
+	r.HandleFunc("/books/{id}", updateBook).Methods("PUT")
+	r.HandleFunc("/books/{id}", deleteBook).Methods("DELETE")
 
 	//Start server
 	log.Fatal(http.ListenAndServe(":8000", r))
