@@ -3,6 +3,8 @@ Simple CRUD Rest API architecture using postgresql db with standard Library
 #
 Todo List
 1. Unit Testing
+2. Clean architecture
+3. Authentication
 
 # Installation
 1. Make sure a PostgreSQL server is up and running.
