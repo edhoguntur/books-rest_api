@@ -1,3 +1,5 @@
+[![CircleCI](https://circleci.com/gh/edhoguntur/books-rest_api.svg?style=svg)](https://circleci.com/gh/edhoguntur/books-rest_api)
+
 # books-rest_api
 Simple CRUD Rest API architecture using postgresql db with standard Library 
 #
